@@ -1,8 +1,5 @@
-
 {% extends "base.html" %}
-
 {% block title %}Login - FaceAuth{% endblock %}
-
 {% block content %}
 <header class="header">
     <div class="container">
@@ -15,42 +12,237 @@
         </div>
     </div>
 </header>
-
 <main class="main">
     <div class="container">
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Login with Face</h2>
-                <p class="card-subtitle">Position your face in front of the camera</p>
+                <p class="card-subtitle">Choose your authentication method</p>
             </div>
-
+            
+            <!-- Method Toggle -->
+            <div class="method-toggle">
+                <button id="cameraBtn" class="method-btn active" onclick="switchMethod('camera')">
+                    📷 Camera
+                </button>
+                <button id="uploadBtn" class="method-btn" onclick="switchMethod('upload')">
+                    📁 Upload Image
+                </button>
+            </div>
+            
             <div id="alertContainer"></div>
-
-            <div class="camera-container" id="cameraContainer">
-                <video id="video" autoplay muted></video>
-                <canvas id="canvas"></canvas>
-                <div id="cameraInstructions">
-                    <p style="margin-bottom: 16px; color: var(--text-secondary);">Click "Start Camera" to begin</p>
+            
+            <!-- Camera Method -->
+            <div id="cameraMethod" class="auth-method active">
+                <div class="camera-container" id="cameraContainer">
+                    <video id="video" autoplay muted></video>
+                    <canvas id="canvas"></canvas>
+                    <div id="cameraInstructions">
+                        <p style="margin-bottom: 16px; color: var(--text-secondary);">Click "Start Camera" to begin</p>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn btn-secondary" id="startCamera">Start Camera</button>
+                    <button class="btn btn-primary hidden" id="captureBtn">Capture & Login</button>
+                    <button class="btn btn-secondary hidden" id="stopCamera">Stop Camera</button>
                 </div>
             </div>
-
-            <div class="camera-controls">
-                <button class="btn btn-secondary" id="startCamera">Start Camera</button>
-                <button class="btn btn-primary hidden" id="captureBtn">Capture & Login</button>
+            
+            <!-- Upload Method -->
+            <div id="uploadMethod" class="auth-method hidden">
+                <div class="upload-container">
+                    <div class="file-upload" onclick="document.getElementById('fileInput').click()" 
+                         ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" class="hidden">
+                        <div id="uploadText" class="upload-text">
+                            <div class="upload-icon">📤</div>
+                            <p>Click to select an image or drag and drop here</p>
+                            <p style="color: var(--text-secondary); font-size: 14px;">Supported formats: JPG, PNG (Max 10MB)</p>
+                        </div>
+                        <img id="imagePreview" class="image-preview hidden">
+                    </div>
+                    <div class="upload-controls">
+                        <button id="uploadLoginBtn" class="btn btn-primary hidden" onclick="loginWithUpload()">Login with This Image</button>
+                        <button id="resetUploadBtn" class="btn btn-secondary hidden" onclick="resetUpload()">Choose Different Image</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </main>
+
+<style>
+.method-toggle {
+    display: flex;
+    margin-bottom: 24px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.method-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    background: var(--background);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.method-btn:hover {
+    background: var(--surface);
+}
+
+.method-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.method-btn:first-child {
+    border-right: 1px solid var(--border);
+}
+
+.auth-method {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.auth-method.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+.auth-method.hidden {
+    display: none;
+}
+
+.upload-container {
+    text-align: center;
+}
+
+.file-upload {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 40px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--surface);
+    margin-bottom: 20px;
+}
+
+.file-upload:hover {
+    border-color: var(--primary);
+    background: var(--background);
+}
+
+.file-upload.dragover {
+    border-color: var(--primary);
+    background: var(--primary-light, rgba(59, 130, 246, 0.1));
+    transform: scale(1.02);
+}
+
+.upload-text {
+    color: var(--text-primary);
+}
+
+.upload-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.image-preview {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin: 10px 0;
+}
+
+.upload-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.camera-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .method-toggle {
+        flex-direction: column;
+    }
+    
+    .method-btn:first-child {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .upload-controls, 
+    .camera-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .upload-controls .btn,
+    .camera-controls .btn {
+        width: 100%;
+        max-width: 250px;
+    }
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
+let selectedFile = null;
+
+// Method switching
+function switchMethod(method) {
+    const cameraBtn = document.getElementById('cameraBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const cameraMethod = document.getElementById('cameraMethod');
+    const uploadMethod = document.getElementById('uploadMethod');
+    
+    if (method === 'camera') {
+        cameraBtn.classList.add('active');
+        uploadBtn.classList.remove('active');
+        cameraMethod.classList.add('active');
+        cameraMethod.classList.remove('hidden');
+        uploadMethod.classList.add('hidden');
+        uploadMethod.classList.remove('active');
+        resetUpload();
+    } else {
+        uploadBtn.classList.add('active');
+        cameraBtn.classList.remove('active');
+        uploadMethod.classList.add('active');
+        uploadMethod.classList.remove('hidden');
+        cameraMethod.classList.add('hidden');
+        cameraMethod.classList.remove('active');
+        // Stop camera if it's running
+        stopCamera('video');
+        resetCameraUI();
+    }
+}
+
+// Camera functionality
 document.getElementById('startCamera').addEventListener('click', async () => {
     const stream = await startCamera('video', 'cameraContainer');
     if (stream) {
         document.getElementById('startCamera').classList.add('hidden');
         document.getElementById('captureBtn').classList.remove('hidden');
+        document.getElementById('stopCamera').classList.remove('hidden');
         document.getElementById('cameraInstructions').innerHTML = '<p style="color: var(--success);">Camera active - Position your face and click capture</p>';
     }
 });
@@ -74,9 +266,147 @@ document.getElementById('captureBtn').addEventListener('click', async () => {
         button.textContent = 'Capture & Login';
         button.classList.remove('loading');
     }
-    
+});
+
+document.getElementById('stopCamera').addEventListener('click', () => {
     stopCamera('video');
+    resetCameraUI();
+});
+
+function resetCameraUI() {
+    document.getElementById('startCamera').classList.remove('hidden');
+    document.getElementById('captureBtn').classList.add('hidden');
+    document.getElementById('stopCamera').classList.add('hidden');
+    document.getElementById('cameraInstructions').innerHTML = '<p style="margin-bottom: 16px; color: var(--text-secondary);">Click "Start Camera" to begin</p>';
+}
+
+// File upload functionality
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        processSelectedFile(file);
+    }
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    const fileUpload = event.currentTarget;
+    fileUpload.classList.remove('dragover');
+    
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+        processSelectedFile(files[0]);
+    }
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.currentTarget.classList.add('dragover');
+}
+
+function handleDragLeave(event) {
+    event.currentTarget.classList.remove('dragover');
+}
+
+function processSelectedFile(file) {
+    // Validate file type
+    if (!file.type.match('image.*')) {
+        showAlert('error', 'Please select a valid image file');
+        return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        showAlert('error', 'File size must be less than 10MB');
+        return;
+    }
+    
+    selectedFile = file;
+    
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('imagePreview');
+        const uploadText = document.getElementById('uploadText');
+        const loginBtn = document.getElementById('uploadLoginBtn');
+        const resetBtn = document.getElementById('resetUploadBtn');
+        
+        preview.src = e.target.result;
+        preview.classList.remove('hidden');
+        uploadText.style.display = 'none';
+        loginBtn.classList.remove('hidden');
+        resetBtn.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function loginWithUpload() {
+    if (!selectedFile) {
+        showAlert('error', 'Please select an image first');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+    
+    const loginBtn = document.getElementById('uploadLoginBtn');
+    const originalText = loginBtn.textContent;
+    
+    loginBtn.textContent = 'Authenticating...';
+    loginBtn.classList.add('loading');
+    loginBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            setTimeout(() => {
+                window.location.href = result.redirect || '/dashboard';
+            }, 1500);
+        } else {
+            showAlert('error', result.message || 'Login failed');
+            loginBtn.textContent = originalText;
+            loginBtn.classList.remove('loading');
+            loginBtn.disabled = false;
+        }
+    } catch (error) {
+        showAlert('error', 'Network error occurred');
+        loginBtn.textContent = originalText;
+        loginBtn.classList.remove('loading');
+        loginBtn.disabled = false;
+    }
+}
+
+function resetUpload() {
+    selectedFile = null;
+    const preview = document.getElementById('imagePreview');
+    const uploadText = document.getElementById('uploadText');
+    const loginBtn = document.getElementById('uploadLoginBtn');
+    const resetBtn = document.getElementById('resetUploadBtn');
+    const fileInput = document.getElementById('fileInput');
+    
+    preview.classList.add('hidden');
+    uploadText.style.display = 'block';
+    loginBtn.classList.add('hidden');
+    resetBtn.classList.add('hidden');
+    fileInput.value = '';
+    
+    // Reset button states
+    loginBtn.textContent = 'Login with This Image';
+    loginBtn.classList.remove('loading');
+    loginBtn.disabled = false;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Default to camera method
+    switchMethod('camera');
 });
 </script>
-
 {% endblock %}
