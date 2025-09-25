@@ -1,78 +1,67 @@
-
-
+<!-- FILE: templates/dashboard.html -->
 {% extends "base.html" %}
 
-{% block title %}Dashboard - FaceAuth{% endblock %}
+{% block title %}Dashboard - FaceAuth Pro{% endblock %}
 
 {% block content %}
-<header class="header">
-    <div class="container">
-        <div class="header-content">
-            <a href="/" class="logo">🔐 FaceAuth</a>
-            <nav class="nav">
-                <span>Welcome, {{ user_name }}</span>
-                <a href="/api/logout" onclick="logout(event)">Logout</a>
-            </nav>
-        </div>
+<div class="card">
+    <div class="card-header">
+        <h1 class="card-title">
+            <i class="fas fa-tachometer-alt"></i>
+            Welcome, {{ user_name }}!
+        </h1>
+        <p class="card-subtitle">Your secure dashboard</p>
     </div>
-</header>
 
-<main class="main">
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Account Dashboard</h2>
-                <p class="card-subtitle">Your account information</p>
-            </div>
-
-            <div id="alertContainer"></div>
-
-            <div class="dashboard-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Account Number</div>
-                    <div class="stat-value" id="accountNumber" style="font-size: 24px;">Loading...</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Account Balance</div>
-                    <div class="stat-value" id="accountBalance">₹0.00</div>
-                </div>
-            </div>
-
-            <div style="text-align: center; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--border-color);">
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">Your account is secured with facial recognition</p>
-                <div class="feature-icon" style="width: 48px; height: 48px; font-size: 20px;">✅</div>
-            </div>
-        </div>
+    <div id="account-info" class="dashboard-grid">
+        <!-- Account info will be loaded here -->
     </div>
-</main>
+
+    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="refreshAccountInfo()">
+            <i class="fas fa-sync-alt"></i> Refresh Account
+        </button>
+        <button class="btn btn-secondary" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+    </div>
+</div>
 {% endblock %}
 
-{% block scripts %}
-{{ super() }}
+{% block extra_js %}
 <script>
-// Load user account info
-async function loadAccountInfo() {
-    const accountResult = await apiRequest('/api/account-info');
+    async function loadAccountInfo() {
+        try {
+            const response = await fetch('/api/account-info');
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('account-info').innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value"><i class="fas fa-user"></i></div>
+                        <div class="stat-label">${result.name}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${result.account_number}</div>
+                        <div class="stat-label">Account Number</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">$${result.balance}</div>
+                        <div class="stat-label">Account Balance</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            showAlert('Failed to load account information', 'error');
+        }
+    }
     
-    if (accountResult.success) {
-        document.getElementById('accountNumber').textContent = accountResult.account_number;
-        document.getElementById('accountBalance').textContent = `₹${accountResult.balance}`;
-    } else {
-        showAlert('error', 'Failed to load account information');
+    function refreshAccountInfo() {
+        loadAccountInfo();
+        showAlert('Account information refreshed', 'success');
     }
-}
-
-// Logout function
-async function logout(e) {
-    e.preventDefault();
-    const result = await apiRequest('/api/logout', 'POST');
-    if (result.success) {
-        window.location.href = '/';
-    }
-}
-
-// Load account info on page load
-document.addEventListener('DOMContentLoaded', loadAccountInfo);
+    
+    // Load account info on page load
+    document.addEventListener('DOMContentLoaded', loadAccountInfo);
 </script>
-
 {% endblock %}
