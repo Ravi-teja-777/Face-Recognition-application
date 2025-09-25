@@ -9,10 +9,15 @@ app = Flask(__name__)
 # Generate this once and store it securely
 app.config['SECRET_KEY'] = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2'
 
-# AWS clients (uses IAM roles)
-s3 = boto3.client('s3')
-rekognition = boto3.client('rekognition')
-dynamodb = boto3.resource('dynamodb')
+import boto3
+
+# Specify your region where you created the resources
+AWS_REGION = 'us-east-1'  # Change to your actual region
+
+# AWS clients with explicit region
+s3 = boto3.client('s3', region_name=AWS_REGION)
+rekognition = boto3.client('rekognition', region_name=AWS_REGION)
+dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
 
 # Configuration
 # AWS Configuration
@@ -307,4 +312,5 @@ def logout():
     return jsonify({'success': True, 'message': 'Logged out successfully'})
 
 if __name__ == '__main__':
+
     app.run(host='0.0.0.0', port=5000, debug=False)
