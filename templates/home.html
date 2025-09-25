@@ -1,0 +1,49 @@
+# home.html - Home page template
+{% extends "base.html" %}
+
+{% block title %}FaceAuth - Secure Face Authentication{% endblock %}
+
+{% block content %}
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="/" class="logo">🔐 FaceAuth</a>
+            <nav class="nav">
+                <a href="/login">Login</a>
+                <a href="/admin">Admin</a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+    <div class="container">
+        <div class="home-hero">
+            <h1 class="home-title">Secure Face Authentication</h1>
+            <p class="home-subtitle">Access your account with just your face. Fast, secure, and convenient.</p>
+            <div class="home-actions">
+                <a href="/login" class="btn btn-primary">Get Started</a>
+                <a href="/admin" class="btn btn-secondary">Admin Access</a>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3 class="feature-title">High Accuracy</h3>
+                <p class="feature-desc">Advanced facial recognition with 99%+ accuracy using AWS Rekognition</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">Lightning Fast</h3>
+                <p class="feature-desc">Authenticate in under 2 seconds with our optimized recognition system</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <h3 class="feature-title">Bank-Level Security</h3>
+                <p class="feature-desc">Your biometric data is encrypted and stored securely in AWS cloud</p>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

@@ -1,0 +1,179 @@
+# admin_dashboard.html - Admin dashboard template
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - FaceAuth{% endblock %}
+
+{% block content %}
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="/" class="logo">🔐 FaceAuth</a>
+            <nav class="nav">
+                <span>Admin Panel</span>
+                <a href="/api/logout" onclick="logout(event)">Logout</a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+    <div class="container">
+        <div class="card-header" style="margin-bottom: 32px;">
+            <h2 class="card-title">Admin Dashboard</h2>
+            <p class="card-subtitle">Manage users and system settings</p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="totalUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Admin Users</div>
+                <div class="stat-value" id="totalAdmins">0</div>
+            </div>
+        </div>
+
+        <!-- Add User Form -->
+        <div class="card" style="margin-bottom: 32px;">
+            <div class="card-header">
+                <h3 class="card-title">Add New User</h3>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">User Name</label>
+                <input type="text" class="form-input" id="newUserName" placeholder="Enter user name">
+            </div>
+
+            <div class="camera-container" id="addUserCameraContainer">
+                <video id="addUserVideo" autoplay muted></video>
+                <canvas id="addUserCanvas"></canvas>
+                <div id="addUserInstructions">
+                    <p style="color: var(--text-secondary);">Start camera and capture user face</p>
+                </div>
+            </div>
+
+            <div class="camera-controls">
+                <button class="btn btn-secondary" id="startAddUserCamera">Start Camera</button>
+                <button class="btn btn-primary hidden" id="captureAddUser">Add User</button>
+            </div>
+        </div>
+
+        <!-- Users List -->
+        <div class="users-table">
+            <div class="table-header">Registered Users</div>
+            <div id="usersList">
+                <div class="table-row">
+                    <div style="color: var(--text-secondary);">Loading users...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Load dashboard data
+async function loadDashboard() {
+    const usersResult = await apiRequest('/api/users');
+    
+    if (usersResult.success) {
+        const users = usersResult.users;
+        const totalUsers = users.length;
+        const totalAdmins = users.filter(u => u.is_admin).length;
+        
+        document.getElementById('totalUsers').textContent = totalUsers;
+        document.getElementById('totalAdmins').textContent = totalAdmins;
+        
+        const usersList = document.getElementById('usersList');
+        usersList.innerHTML = '';
+        
+        if (users.length === 0) {
+            usersList.innerHTML = '<div class="table-row"><div style="color: var(--text-secondary);">No users registered yet</div></div>';
+        } else {
+            users.forEach(user => {
+                const userRow = document.createElement('div');
+                userRow.className = 'table-row';
+                userRow.innerHTML = `
+                    <div class="user-info">
+                        <div class="user-name">${user.name}</div>
+                        <div class="user-meta">
+                            Account: ${user.account_number} • 
+                            Created: ${new Date(user.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div>
+                        <span class="badge ${user.is_admin ? 'badge-admin' : 'badge-user'}">
+                            ${user.is_admin ? 'Admin' : 'User'}
+                        </span>
+                    </div>
+                `;
+                usersList.appendChild(userRow);
+            });
+        }
+    } else {
+        showAlert('error', 'Failed to load users');
+    }
+}
+
+// Add User Logic
+document.getElementById('startAddUserCamera').addEventListener('click', async () => {
+    const stream = await startCamera('addUserVideo', 'addUserCameraContainer');
+    if (stream) {
+        document.getElementById('startAddUserCamera').classList.add('hidden');
+        document.getElementById('captureAddUser').classList.remove('hidden');
+        document.getElementById('addUserInstructions').innerHTML = '<p style="color: var(--success);">Camera active - Position user face and capture</p>';
+    }
+});
+
+document.getElementById('captureAddUser').addEventListener('click', async () => {
+    const name = document.getElementById('newUserName').value.trim();
+    if (!name) {
+        showAlert('error', 'Please enter user name');
+        return;
+    }
+    
+    const imageData = captureImage('addUserVideo', 'addUserCanvas');
+    const button = document.getElementById('captureAddUser');
+    
+    button.textContent = 'Adding User...';
+    button.classList.add('loading');
+    
+    const result = await apiRequest('/api/add-user', 'POST', { 
+        image: imageData, 
+        name: name 
+    });
+    
+    if (result.success) {
+        showAlert('success', result.message);
+        document.getElementById('newUserName').value = '';
+        document.getElementById('startAddUserCamera').classList.remove('hidden');
+        document.getElementById('captureAddUser').classList.add('hidden');
+        document.getElementById('addUserInstructions').innerHTML = '<p style="color: var(--text-secondary);">Start camera and capture user face</p>';
+        loadDashboard(); // Refresh the users list
+    } else {
+        showAlert('error', result.message || result.error);
+    }
+    
+    button.textContent = 'Add User';
+    button.classList.remove('loading');
+    stopCamera('addUserVideo');
+});
+
+// Logout function
+async function logout(e) {
+    e.preventDefault();
+    const result = await apiRequest('/api/logout', 'POST');
+    if (result.success) {
+        window.location.href = '/';
+    }
+}
+
+// Load dashboard on page load
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+# login.html - Login page template  
+{% extends "base.html" %}
+
+{% block title %}Login - FaceAuth{% endblock %}
+
+{% block content %}
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="/" class="logo">🔐 FaceAuth</a>
+            <nav class="nav">
+                <a href="/">Home</a>
+                <a href="/admin">Admin</a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Login with Face</h2>
+                <p class="card-subtitle">Position your face in front of the camera</p>
+            </div>
+
+            <div id="alertContainer"></div>
+
+            <div class="camera-container" id="cameraContainer">
+                <video id="video" autoplay muted></video>
+                <canvas id="canvas"></canvas>
+                <div id="cameraInstructions">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">Click "Start Camera" to begin</p>
+                </div>
+            </div>
+
+            <div class="camera-controls">
+                <button class="btn btn-secondary" id="startCamera">Start Camera</button>
+                <button class="btn btn-primary hidden" id="captureBtn">Capture & Login</button>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.getElementById('startCamera').addEventListener('click', async () => {
+    const stream = await startCamera('video', 'cameraContainer');
+    if (stream) {
+        document.getElementById('startCamera').classList.add('hidden');
+        document.getElementById('captureBtn').classList.remove('hidden');
+        document.getElementById('cameraInstructions').innerHTML = '<p style="color: var(--success);">Camera active - Position your face and click capture</p>';
+    }
+});
+
+document.getElementById('captureBtn').addEventListener('click', async () => {
+    const imageData = captureImage('video', 'canvas');
+    const button = document.getElementById('captureBtn');
+    
+    button.textContent = 'Authenticating...';
+    button.classList.add('loading');
+    
+    const result = await apiRequest('/api/login', 'POST', { image: imageData });
+    
+    if (result.success) {
+        showAlert('success', result.message);
+        setTimeout(() => {
+            window.location.href = result.redirect || '/dashboard';
+        }, 1500);
+    } else {
+        showAlert('error', result.message || result.error);
+        button.textContent = 'Capture & Login';
+        button.classList.remove('loading');
+    }
+    
+    stopCamera('video');
+});
+</script>
+{% endblock %}

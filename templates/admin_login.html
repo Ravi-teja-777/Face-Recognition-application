@@ -1,0 +1,152 @@
+# admin_login.html - Admin login page template
+{% extends "base.html" %}
+
+{% block title %}Admin Access - FaceAuth{% endblock %}
+
+{% block content %}
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="/" class="logo">🔐 FaceAuth</a>
+            <nav class="nav">
+                <a href="/">Home</a>
+                <a href="/login">Login</a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Admin Access</h2>
+                <p class="card-subtitle">Authenticate with admin face recognition</p>
+            </div>
+
+            <div id="alertContainer"></div>
+
+            <div class="camera-container" id="cameraContainer">
+                <video id="video" autoplay muted></video>
+                <canvas id="canvas"></canvas>
+                <div id="cameraInstructions">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">Click "Start Camera" to begin</p>
+                </div>
+            </div>
+
+            <div class="camera-controls">
+                <button class="btn btn-secondary" id="startCamera">Start Camera</button>
+                <button class="btn btn-primary hidden" id="captureBtn">Authenticate</button>
+            </div>
+
+            <div style="text-align: center; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">No admin account yet?</p>
+                <button class="btn btn-secondary" id="showCreateAdmin">Create First Admin</button>
+            </div>
+
+            <!-- Create First Admin Form -->
+            <div id="createAdminForm" class="hidden" style="margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--border-color);">
+                <h3 style="margin-bottom: 16px;">Create First Admin</h3>
+                <div class="form-group">
+                    <label class="form-label">Admin Name</label>
+                    <input type="text" class="form-input" id="adminName" placeholder="Enter admin name">
+                </div>
+                <div class="camera-container">
+                    <video id="createAdminVideo" autoplay muted></video>
+                    <canvas id="createAdminCanvas"></canvas>
+                    <div id="createAdminInstructions">
+                        <p style="color: var(--text-secondary);">Start camera and capture admin face</p>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn btn-secondary" id="startCreateAdminCamera">Start Camera</button>
+                    <button class="btn btn-primary hidden" id="captureCreateAdmin">Create Admin</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Admin Login
+document.getElementById('startCamera').addEventListener('click', async () => {
+    const stream = await startCamera('video', 'cameraContainer');
+    if (stream) {
+        document.getElementById('startCamera').classList.add('hidden');
+        document.getElementById('captureBtn').classList.remove('hidden');
+        document.getElementById('cameraInstructions').innerHTML = '<p style="color: var(--success);">Camera active - Position your face and authenticate</p>';
+    }
+});
+
+document.getElementById('captureBtn').addEventListener('click', async () => {
+    const imageData = captureImage('video', 'canvas');
+    const button = document.getElementById('captureBtn');
+    
+    button.textContent = 'Authenticating...';
+    button.classList.add('loading');
+    
+    const result = await apiRequest('/api/admin-login', 'POST', { image: imageData });
+    
+    if (result.success) {
+        showAlert('success', result.message);
+        setTimeout(() => {
+            window.location.href = '/admin';
+        }, 1500);
+    } else {
+        showAlert('error', result.message || result.error);
+        button.textContent = 'Authenticate';
+        button.classList.remove('loading');
+    }
+    
+    stopCamera('video');
+});
+
+// Create Admin
+document.getElementById('showCreateAdmin').addEventListener('click', () => {
+    document.getElementById('createAdminForm').classList.toggle('hidden');
+});
+
+document.getElementById('startCreateAdminCamera').addEventListener('click', async () => {
+    const stream = await startCamera('createAdminVideo');
+    if (stream) {
+        document.getElementById('startCreateAdminCamera').classList.add('hidden');
+        document.getElementById('captureCreateAdmin').classList.remove('hidden');
+        document.getElementById('createAdminInstructions').innerHTML = '<p style="color: var(--success);">Camera active</p>';
+    }
+});
+
+document.getElementById('captureCreateAdmin').addEventListener('click', async () => {
+    const name = document.getElementById('adminName').value.trim();
+    if (!name) {
+        showAlert('error', 'Please enter admin name');
+        return;
+    }
+    
+    const imageData = captureImage('createAdminVideo', 'createAdminCanvas');
+    const button = document.getElementById('captureCreateAdmin');
+    
+    button.textContent = 'Creating...';
+    button.classList.add('loading');
+    
+    const result = await apiRequest('/api/create-first-admin', 'POST', { 
+        image: imageData, 
+        name: name 
+    });
+    
+    if (result.success) {
+        showAlert('success', result.message);
+        document.getElementById('createAdminForm').classList.add('hidden');
+        document.getElementById('adminName').value = '';
+    } else {
+        showAlert('error', result.message || result.error);
+    }
+    
+    button.textContent = 'Create Admin';
+    button.classList.remove('loading');
+    stopCamera('createAdminVideo');
+});
+</script>
+{% endblock %}
