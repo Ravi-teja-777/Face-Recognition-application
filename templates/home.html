@@ -1,50 +1,72 @@
-
+<!-- FILE: templates/home.html -->
 {% extends "base.html" %}
 
-{% block title %}FaceAuth - Secure Face Authentication{% endblock %}
+{% block title %}FaceAuth Pro - Secure Face Authentication{% endblock %}
 
 {% block content %}
-<header class="header">
-    <div class="container">
-        <div class="header-content">
-            <a href="/" class="logo">🔐 FaceAuth</a>
-            <nav class="nav">
-                <a href="/login">Login</a>
-                <a href="/admin">Admin</a>
-            </nav>
+<div class="card" style="margin-top: 2rem; text-align: center;">
+    <div class="card-header">
+        <h1 class="card-title">
+            <i class="fas fa-shield-alt"></i>
+            Welcome to FaceAuth Pro
+        </h1>
+        <p class="card-subtitle">Secure, Fast, and Reliable Face Authentication System</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin: 3rem 0;">
+        <div class="stat-card">
+            <i class="fas fa-lock" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <div class="stat-label">Secure Login</div>
+            <p style="margin-top: 1rem; font-size: 0.9rem;">Advanced facial recognition technology</p>
+        </div>
+        
+        <div class="stat-card">
+            <i class="fas fa-bolt" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <div class="stat-label">Lightning Fast</div>
+            <p style="margin-top: 1rem; font-size: 0.9rem;">Authentication in under 2 seconds</p>
+        </div>
+        
+        <div class="stat-card">
+            <i class="fas fa-users" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <div class="stat-label">Multi-User</div>
+            <p style="margin-top: 1rem; font-size: 0.9rem;">Support for unlimited users</p>
         </div>
     </div>
-</header>
 
-<main class="main">
-    <div class="container">
-        <div class="home-hero">
-            <h1 class="home-title">Secure Face Authentication</h1>
-            <p class="home-subtitle">Access your account with just your face. Fast, secure, and convenient.</p>
-            <div class="home-actions">
-                <a href="/login" class="btn btn-primary">Get Started</a>
-                <a href="/admin" class="btn btn-secondary">Admin Access</a>
-            </div>
-        </div>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 3rem;">
+        <a href="/login" class="btn btn-primary">
+            <i class="fas fa-sign-in-alt"></i> User Login
+        </a>
+        <a href="/admin" class="btn btn-secondary">
+            <i class="fas fa-cog"></i> Admin Panel
+        </a>
+    </div>
 
-        <div class="features">
-            <div class="feature">
-                <div class="feature-icon">🎯</div>
-                <h3 class="feature-title">High Accuracy</h3>
-                <p class="feature-desc">Advanced facial recognition with 99%+ accuracy using AWS Rekognition</p>
+    <div style="margin-top: 3rem; padding: 2rem; background: #f8fafc; border-radius: 12px;">
+        <h3 style="margin-bottom: 1rem; color: #374151;">How it works</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; text-align: left;">
+            <div>
+                <div style="width: 40px; height: 40px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <span style="color: white; font-weight: bold;">1</span>
+                </div>
+                <h4 style="margin-bottom: 0.5rem;">Capture</h4>
+                <p style="color: #64748b; font-size: 0.9rem;">Take a photo using your camera or upload an image</p>
             </div>
-            <div class="feature">
-                <div class="feature-icon">⚡</div>
-                <h3 class="feature-title">Lightning Fast</h3>
-                <p class="feature-desc">Authenticate in under 2 seconds with our optimized recognition system</p>
+            <div>
+                <div style="width: 40px; height: 40px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <span style="color: white; font-weight: bold;">2</span>
+                </div>
+                <h4 style="margin-bottom: 0.5rem;">Analyze</h4>
+                <p style="color: #64748b; font-size: 0.9rem;">AI analyzes facial features for authentication</p>
             </div>
-            <div class="feature">
-                <div class="feature-icon">🔒</div>
-                <h3 class="feature-title">Bank-Level Security</h3>
-                <p class="feature-desc">Your biometric data is encrypted and stored securely in AWS cloud</p>
+            <div>
+                <div style="width: 40px; height: 40px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    <span style="color: white; font-weight: bold;">3</span>
+                </div>
+                <h4 style="margin-bottom: 0.5rem;">Access</h4>
+                <p style="color: #64748b; font-size: 0.9rem;">Get instant access to your secure dashboard</p>
             </div>
         </div>
     </div>
-</main>
+</div>
 {% endblock %}
-
