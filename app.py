@@ -4,10 +4,21 @@ import base64
 import json
 from datetime import datetime
 import uuid
+from werkzeug.utils import secure_filename
+import os
 
 app = Flask(__name__)
 # Generate this once and store it securely
 app.config['SECRET_KEY'] = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2'
+
+# Configure upload settings
+UPLOAD_FOLDER = 'temp_uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Create upload folder if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 import boto3
 
@@ -26,6 +37,27 @@ COLLECTION_ID = "my-face-collection"            # Your Rekognition collection
 USERS_TABLE = "face-users"                      # DynamoDB table for users
 LOGS_TABLE = "face-logs"                        # DynamoDB table for login/activity logs
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def process_image_file(file):
+    """Process uploaded file and return image bytes"""
+    try:
+        image_bytes = file.read()
+        file.seek(0)  # Reset file pointer
+        return image_bytes
+    except Exception as e:
+        raise Exception(f"Error processing image file: {str(e)}")
+
+def process_base64_image(image_data):
+    """Process base64 image data and return image bytes"""
+    try:
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+        return base64.b64decode(image_data)
+    except Exception as e:
+        raise Exception(f"Error processing base64 image: {str(e)}")
 
 @app.route('/')
 def home():
@@ -51,9 +83,25 @@ def dashboard():
 @app.route('/api/admin-login', methods=['POST'])
 def admin_login():
     try:
-        data = request.get_json()
-        image_data = data['image'].split(',')[1]
-        image_bytes = base64.b64decode(image_data)
+        image_bytes = None
+        
+        # Handle both file upload and base64 image
+        if 'image' in request.files:
+            # File upload
+            file = request.files['image']
+            if file and allowed_file(file.filename):
+                image_bytes = process_image_file(file)
+            else:
+                return jsonify({'success': False, 'message': 'Invalid image file'})
+        elif request.is_json:
+            # Base64 image (from camera)
+            data = request.get_json()
+            if 'image' in data:
+                image_bytes = process_base64_image(data['image'])
+            else:
+                return jsonify({'success': False, 'message': 'No image data provided'})
+        else:
+            return jsonify({'success': False, 'message': 'No image provided'})
         
         # Check if admin face exists
         try:
@@ -75,8 +123,8 @@ def admin_login():
                     session['is_admin'] = True
                     session['admin_name'] = user_response['Item']['name']
                     return jsonify({'success': True, 'message': 'Admin authenticated'})
-        except:
-            pass
+        except Exception as rekognition_error:
+            return jsonify({'success': False, 'message': f'Face recognition error: {str(rekognition_error)}'})
             
         return jsonify({'success': False, 'message': 'Admin not recognized'})
         
@@ -93,10 +141,25 @@ def create_first_admin():
         if response['Items']:
             return jsonify({'success': False, 'message': 'Admin already exists'})
         
-        data = request.get_json()
-        image_data = data['image'].split(',')[1]
-        name = data['name']
-        image_bytes = base64.b64decode(image_data)
+        image_bytes = None
+        name = None
+        
+        # Handle both file upload and base64 image
+        if 'image' in request.files and 'name' in request.form:
+            # File upload
+            file = request.files['image']
+            name = request.form['name']
+            if file and allowed_file(file.filename):
+                image_bytes = process_image_file(file)
+            else:
+                return jsonify({'success': False, 'message': 'Invalid image file'})
+        elif request.is_json:
+            # Base64 image (from camera)
+            data = request.get_json()
+            name = data['name']
+            image_bytes = process_base64_image(data['image'])
+        else:
+            return jsonify({'success': False, 'message': 'Invalid request format'})
         
         # Upload to S3
         s3_key = f'admin_{name}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.jpg'
@@ -138,10 +201,25 @@ def add_user():
         return jsonify({'success': False, 'message': 'Admin access required'})
     
     try:
-        data = request.get_json()
-        image_data = data['image'].split(',')[1]
-        name = data['name']
-        image_bytes = base64.b64decode(image_data)
+        image_bytes = None
+        name = None
+        
+        # Handle both file upload and base64 image
+        if 'image' in request.files and 'name' in request.form:
+            # File upload
+            file = request.files['image']
+            name = request.form['name']
+            if file and allowed_file(file.filename):
+                image_bytes = process_image_file(file)
+            else:
+                return jsonify({'success': False, 'message': 'Invalid image file'})
+        elif request.is_json:
+            # Base64 image (from camera)
+            data = request.get_json()
+            name = data['name']
+            image_bytes = process_base64_image(data['image'])
+        else:
+            return jsonify({'success': False, 'message': 'Invalid request format'})
         
         # Check if face already exists
         try:
@@ -196,9 +274,25 @@ def add_user():
 @app.route('/api/login', methods=['POST'])
 def user_login():
     try:
-        data = request.get_json()
-        image_data = data['image'].split(',')[1]
-        image_bytes = base64.b64decode(image_data)
+        image_bytes = None
+        
+        # Handle both file upload and base64 image
+        if 'image' in request.files:
+            # File upload
+            file = request.files['image']
+            if file and allowed_file(file.filename):
+                image_bytes = process_image_file(file)
+            else:
+                return jsonify({'success': False, 'message': 'Invalid image file'})
+        elif request.is_json:
+            # Base64 image (from camera)
+            data = request.get_json()
+            if 'image' in data:
+                image_bytes = process_base64_image(data['image'])
+            else:
+                return jsonify({'success': False, 'message': 'No image data provided'})
+        else:
+            return jsonify({'success': False, 'message': 'No image provided'})
         
         # Search for face
         response = rekognition.search_faces_by_image(
@@ -311,6 +405,19 @@ def logout():
     session.clear()
     return jsonify({'success': True, 'message': 'Logged out successfully'})
 
-if __name__ == '__main__':
+# Cleanup route to remove temporary uploaded files
+@app.route('/api/cleanup-temp', methods=['POST'])
+def cleanup_temp_files():
+    try:
+        for filename in os.listdir(UPLOAD_FOLDER):
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            if os.path.isfile(file_path):
+                # Remove files older than 1 hour
+                if os.path.getctime(file_path) < (datetime.now().timestamp() - 3600):
+                    os.remove(file_path)
+        return jsonify({'success': True, 'message': 'Temp files cleaned'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
